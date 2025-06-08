@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isaac Asimov Robotics Lab - Component Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-auth-compat.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #134e4a 50%, #1e3a8a 75%, #581c87 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 15px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            color: #22c55e;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+        }
+        
+        .header p {
+            color: #06b6d4;
+            font-size: 1.1rem;
+        }
+        
+        .auth-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #22c55e;
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(34, 197, 94, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .dashboard {
+            display: none;
+        }
+        
+        .dashboard.active {
+            display: block;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            border-radius: 15px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card h3 {
+            color: #22c55e;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid rgba(34, 197, 94, 0.3);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.2);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #22c55e;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #06b6d4;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .request-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #22c55e;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .request-info {
+            flex: 1;
+        }
+        
+        .request-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-approve {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .btn-reject {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .status-pending {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+        
+        .status-approved {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .status-rejected {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(34, 197, 94, 0.3);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            .request-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        .email-domain {
+            color: #06b6d4;
+            font-weight: 500;
+        }
+        
+        .auto-complete {
+            position: relative;
+        }
+        
+        .component-select {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 16px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #06b6d4;
+        }
+        
+        .error {
+            color: #ef4444;
+            text-align: center;
+            padding: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Isaac Asimov Robotics Lab</h1>
+            <p>Professional Component Management System</p>
+        </div>
+
+        <!-- Login/Register Form -->
+        <div id="auth-section" class="auth-container">
+            <div id="login-form">
+                <h2 style="text-align: center; margin-bottom: 25px; color: #22c55e;">Login</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginName">Name:</label>
+                        <input type="text" id="loginName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginEmail">Email: <span class="email-domain">@issacasimov.in</span></label>
+                        <input type="text" id="loginEmail" placeholder="Enter name before @" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                </form>
+                <p style="text-align: center; margin-top: 15px; color: #94a3b8;">
+                    Don't have an account? <a href="#" onclick="showRegister()" style="color: #22c55e;">Register</a>
+                </p>
+            </div>
+
+            <div id="register-form" style="display: none;">
+                <h2 style="text-align: center; margin-bottom: 25px; color: #22c55e;">Register</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="regName">Full Name:</label>
+                        <input type="text" id="regName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">Email: <span class="email-domain">@issacasimov.in</span></label>
+                        <input type="text" id="regEmail" placeholder="Enter name before @" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regRoll">Roll Number:</label>
+                        <input type="text" id="regRoll" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regMobile">Mobile Number:</label>
+                        <input type="tel" id="regMobile" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Password:</label>
+                        <input type="password" id="regPassword" required>
+                    </div>
+                    <button type="submit" class="btn">Register</button>
+                </form>
+                <p style="text-align: center; margin-top: 15px; color: #94a3b8;">
+                    Already have an account? <a href="#" onclick="showLogin()" style="color: #22c55e;">Login</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Student Dashboard -->
+        <div id="student-dashboard" class="dashboard">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <div class="user-avatar" id="student-avatar">S</div>
+                    <div>
+                        <h3 id="student-name">Student Name</h3>
+                        <p id="student-email">student@issacasimov.in</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="btn btn-danger" style="width: auto; padding: 10px 20px;">Logout</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('submit-request')">📋 Submit Request</div>
+                <div class="tab" onclick="switchTab('my-items')">📦 My Borrowed Items</div>
+                <div class="tab" onclick="switchTab('due-dates')">🗓 Due Dates</div>
+                <div class="tab" onclick="switchTab('contact')">ℹ Admin Contact</div>
+            </div>
+
+            <div id="submit-request" class="tab-content active">
+                <div class="card">
+                    <h3>Submit Component Request</h3>
+                    <form id="requestForm">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="reqComponent">Component:</label>
+                                <select id="reqComponent" class="component-select" required>
+                                    <option value="">Select Component</option>
+                                    <option value="Arduino Uno">Arduino Uno</option>
+                                    <option value="Raspberry Pi">Raspberry Pi</option>
+                                    <option value="L298N Motor Driver">L298N Motor Driver</option>
+                                    <option value="Ultrasonic Sensor">Ultrasonic Sensor</option>
+                                    <option value="Servo Motor">Servo Motor</option>
+                                    <option value="LED Strip">LED Strip</option>
+                                    <option value="Breadboard">Breadboard</option>
+                                    <option value="Jumper Wires">Jumper Wires</option>
+                                    <option value="Resistor Kit">Resistor Kit</option>
+                                    <option value="Capacitor Kit">Capacitor Kit</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reqQuantity">Quantity:</label>
+                                <input type="number" id="reqQuantity" min="1" max="10" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="reqDueDate">Due Date:</label>
+                            <input type="date" id="reqDueDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reqPurpose">Purpose/Project Details:</label>
+                            <textarea id="reqPurpose" rows="3" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.8); border: 2px solid rgba(34, 197, 94, 0.3); border-radius: 8px; color: #e2e8f0; resize: vertical;" placeholder="Describe your project..."></textarea>
+                        </div>
+                        <button type="submit" class="btn">Submit Request</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="my-items" class="tab-content">
+                <div class="card">
+                    <h3>My Borrowed Items</h3>
+                    <div id="student-items" class="loading">Loading your items...</div>
+                </div>
+            </div>
+
+            <div id="due-dates" class="tab-content">
+                <div class="card">
+                    <h3>Upcoming Due Dates</h3>
+                    <div id="student-due-dates" class="loading">Loading due dates...</div>
+                </div>
+            </div>
+
+            <div id="contact" class="tab-content">
+                <div class="card">
+                    <h3>Admin Contact Information</h3>
+                    <div style="padding: 20px; background: rgba(15, 23, 42, 0.6); border-radius: 10px; margin-top: 15px;">
+                        <p style="margin-bottom: 10px;"><strong style="color: #22c55e;">Email:</strong> admin@issacasimov.in</p>
+                        <p style="margin-bottom: 10px;"><strong style="color: #22c55e;">Lab Location:</strong> Isaac Asimov Robotics Lab, Ground Floor</p>
+                        <p style="margin-bottom: 10px;"><strong style="color: #22c55e;">Working Hours:</strong> Monday - Friday, 9:00 AM - 5:00 PM</p>
+                        <p><strong style="color: #22c55e;">Emergency Contact:</strong> +91 9876543210</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard" class="dashboard">
+            <div class="dashboard-header">
+                <div class="user-info">
+                    <div class="user-avatar" id="admin-avatar">A</div>
+                    <div>
+                        <h3>Admin Panel</h3>
+                        <p>admin@issacasimov.in</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="btn btn-danger" style="width: auto; padding: 10px 20px;">Logout</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-components">0</div>
+                    <div class="stat-label">Total Components</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pending-requests">0</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-borrows">0</div>
+                    <div class="stat-label">Active Borrows</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="overdue-items">0</div>
+                    <div class="stat-label">Overdue Items</div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('pending-requests')">🧾 Pending Requests</div>
+                <div class="tab" onclick="switchTab('inventory')">🔄 Inventory Manager</div>
+                <div class="tab" onclick="switchTab('all-borrows')">📋 All Borrows</div>
+                <div class="tab" onclick="switchTab('students')">👥 Students</div>
+                <div class="tab" onclick="switchTab('reports')">📊 Reports</div>
+            </div>
+
+            <div id="pending-requests" class="tab-content active">
+                <div class="card">
+                    <h3>Pending Requests</h3>
+                    <div id="admin-pending-requests" class="loading">Loading pending requests...</div>
+                </div>
+            </div>
+
+            <div id="inventory" class="tab-content">
+                <div class="card">
+                    <h3>Inventory Management</h3>
+                    <div id="inventory-list" class="loading">Loading inventory...</div>
+                </div>
+            </div>
+
+            <div id="all-borrows" class="tab-content">
+                <div class="card">
+                    <h3>All Borrowed Items</h3>
+                    <div id="admin-all-borrows" class="loading">Loading all borrows...</div>
+                </div>
+            </div>
+
+            <div id="students" class="tab-content">
+                <div class="card">
+                    <h3>Registered Students</h3>
+                    <div id="students-list" class="loading">Loading students...</div>
+                </div>
+            </div>
+
+            <div id="reports" class="tab-content">
+                <div class="card">
+                    <h3>System Reports</h3>
+                    <div class="grid-2">
+                        <button onclick="exportData('requests')" class="btn btn-secondary">Export All Requests</button>
+                        <button onclick="exportData('students')" class="btn btn-secondary">Export Students Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "demo-key",
+            authDomain: "demo-project.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "demo-app-id"
+        };
+
+        // Initialize Firebase (Demo mode - using localStorage instead)
+        let currentUser = null;
+        let users = JSON.parse(localStorage.getItem('labUsers') || '[]');
+        let requests = JSON.parse(localStorage.getItem('labRequests') || '[]');
+        let components = JSON.parse(localStorage.getItem('labComponents') || '[]');
+
+        // Initialize default admin and components
+        function initializeData() {
+            if (users.length === 0) {
+                users.push({
+                    name: 'System Admin',
+                    email: 'admin@issacasimov.in',
+                    password: 'ralab',
+                    role: 'admin',
+                    rollNumber: 'ADMIN001',
+                    mobile: '+91 9876543210',
+                    registeredAt: new Date().toISOString()
+                });
+                localStorage.setItem('labUsers', JSON.stringify(users));
+            }
+
+            if (components.length === 0) {
+                const defaultComponents = [{
+                    name: 'Arduino Uno',
+                    available: 10,
+                    total: 15
+                }, {
+                    name: 'Raspberry Pi',
+                    available: 5,
+                    total: 8
+                }, {
+                    name: 'L298N Motor Driver',
+                    available: 20,
+                    total: 25
+                }, {
+                    name: 'Ultrasonic Sensor',
+                    available: 15,
+                    total: 20
+                }, {
+                    name: 'Servo Motor',
+                    available: 12,
+                    total: 15
+                }, {
+                    name: 'LED Strip',
+                    available: 8,
+                    total: 10
+                }, {
+                    name: 'Breadboard',
+                    available: 25,
+                    total: 30
+                }, {
+                    name: 'Jumper Wires',
+                    available: 50,
+                    total: 60
+                }, {
+                    name: 'Resistor Kit',
+                    available: 10,
+                    total: 12
+                }, {
+                    name: 'Capacitor Kit',
+                    available: 8,
+                    total: 10
+                }];
+                localStorage.setItem('labComponents', JSON.stringify(defaultComponents));
+                components = defaultComponents;
+            }
+        }
+
+        initializeData();
+
+        // Authentication Functions
+        function showLogin() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        }
+
+        // Auto-complete email domain
+        document.getElementById('loginEmail').addEventListener('input', function(e) {
+            const value = e.target.value;
+            if (value && !value.includes('@')) {
+                e.target.value = value.replace('@issacasimov.in', '');
+            }
+        });
+
+        document.getElementById('regEmail').addEventListener('input', function(e) {
+            const value = e.target.value;
+            if (value && !value.includes('@')) {
+                e.target.value = value.replace('@issacasimov.in', '');
+            }
+        });
+
+        // Login Form Handler
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('loginName').value.trim();
+            const emailPrefix = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const fullEmail = emailPrefix + '@issacasimov.in';
+
+            // Check for admin
+            if (fullEmail === 'admin@issacasimov.in' && password === 'ralab') {
+                currentUser = {
+                    name: 'System Admin',
+                    email: fullEmail,
+                    role: 'admin'
+                };
+                showDashboard('admin');
+                showNotification('Welcome Admin!');
+                return;
+            }
+
+            // Check for student
+            const user = users.find(u => u.email === fullEmail && u.password === password);
+            if (user) {
+                currentUser = user;
+                showDashboard('student');
+                showNotification(`Welcome back, ${user.name}!`);
+                loadStudentData();
+            } else {
+                showNotification('Invalid credentials!', 'error');
+            }
+        });
+
+        // Register Form Handler
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const emailPrefix = document.getElementById('regEmail').value.trim();
+            const rollNumber = document.getElementById('regRoll').value.trim();
+            const mobile = document.getElementById('regMobile').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const fullEmail = emailPrefix + '@issacasimov.in';
+
+            // Check if user already exists
+            if (users.find(u => u.email === fullEmail)) {
+                showNotification('User already exists!', 'error');
+                return;
+            }
+
+            // Create new user
+            const newUser = {
+                name,
+                email: fullEmail,
+                password,
+                role: 'student',
+                rollNumber,
+                mobile,
+                registeredAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            localStorage.setItem('labUsers', JSON.stringify(users));
+
+            showNotification('Registration successful! Please login.');
+            showLogin();
+        });
+
+        // Request Form Handler
+        document.getElementById('requestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const component = document.getElementById('reqComponent').value;
+            const quantity = parseInt(document.getElementById('reqQuantity').value);
+            const dueDate = document.getElementById('reqDueDate').value;
+            const purpose = document.getElementById('reqPurpose').value.trim();
+
+            // Check component availability
+            const comp = components.find(c => c.name === component);
+            if (!comp || comp.available < quantity) {
+                showNotification('Insufficient component availability!', 'error');
+                return;
+            }
+
+            // Create request
+            const request = {
+                id: Date.now().toString(),
+                studentName: currentUser.name,
+                studentEmail: currentUser.email,
+                rollNumber: currentUser.rollNumber,
+                mobile: currentUser.mobile,
+                component,
+                quantity,
+                dueDate,
+                purpose,
+                status: 'pending',
+                requestedAt: new Date().toISOString()
+            };
+
+            requests.push(request);
+            localStorage.setItem('labRequests', JSON.stringify(requests));
+
+            showNotification('Request submitted successfully! You will be notified when approved.');
+            document.getElementById('requestForm').reset();
+            loadStudentData();
+        });
+
+        // Dashboard Functions
+        function showDashboard(role) {
+            document.getElementById('auth-section').style.display = 'none';
+            if (role === 'admin') {
+                document.getElementById('admin-dashboard').classList.add('active');
+                document.getElementById('student-dashboard').classList.remove('active');
+                loadAdminData();
+            } else {
+                document.getElementById('student-dashboard').classList.add('active');
+                document.getElementById('admin-dashboard').classList.remove('active');
+                document.getElementById('student-name').textContent = currentUser.name;
+                document.getElementById('student-email').textContent = currentUser.email;
+                document.getElementById('student-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+                loadStudentData();
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('admin-dashboard').classList.remove('active');
+            document.getElementById('student-dashboard').classList.remove('active');
+            showLogin();
+            showNotification('Logged out successfully!');
+        }
+
+        // Tab Management
+        function switchTab(tabName) {
+            // Remove active from all tabs and contents
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active to clicked tab and corresponding content
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            // Load specific data based on tab
+            if (tabName === 'my-items') loadStudentItems();
+            if (tabName === 'due-dates') loadStudentDueDates();
+            if (tabName === 'pending-requests') loadPendingRequests();
+            if (tabName === 'inventory') loadInventory();
+            if (tabName === 'all-borrows') loadAllBorrows();
+            if (tabName === 'students') loadStudentsList();
+        }
+
+        // Student Data Functions
+        function loadStudentData() {
+            loadStudentItems();
+            loadStudentDueDates();
+        }
+
+        function loadStudentItems() {
+            const studentRequests = requests.filter(r => r.studentEmail === currentUser.email);
+            const container = document.getElementById('student-items');
+
+            if (studentRequests.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">No items borrowed yet.</div>';
+                return;
+            }
+
+            container.innerHTML = studentRequests.map(request => `
+                <div class="request-item">
+                    <div class="request-info">
+                        <h4 style="color: #22c55e; margin-bottom: 5px;">${request.component}</h4>
+                        <p style="margin-bottom: 3px;"><strong>Quantity:</strong> ${request.quantity}</p>
+                        <p style="margin-bottom: 3px;"><strong>Due Date:</strong> ${new Date(request.dueDate).toLocaleDateString()}</p>
+                        <p style="margin-bottom: 3px;"><strong>Status:</strong> <span class="status-${request.status}">${request.status.toUpperCase()}</span></p>
+                        <p style="font-size: 0.9rem; color: #94a3b8;">Requested: ${new Date(request.requestedAt).toLocaleString()}</p>
+                    </div>
+                    ${request.status === 'approved' ? `
+                        <div class="request-actions">
+                            <button onclick="markAsReturned('${request.id}')" class="btn-small btn-secondary">Mark as Returned</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function loadStudentDueDates() {
+            const approvedRequests = requests.filter(r => r.studentEmail === currentUser.email && r.status === 'approved');
+            const container = document.getElementById('student-due-dates');
+            
+            if (approvedRequests.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">No active borrows.</div>';
+                return;
+            }
+
+            const sortedRequests = approvedRequests.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            
+            container.innerHTML = sortedRequests.map(request => {
+                const dueDate = new Date(request.dueDate);
+                const today = new Date();
+                const diffTime = dueDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let statusColor = '#22c55e';
+                let statusText = `${diffDays} days remaining`;
+                
+                if (diffDays < 0) {
+                    statusColor = '#ef4444';
+                    statusText = `${Math.abs(diffDays)} days overdue`;
+                } else if (diffDays <= 2) {
+                    statusColor = '#fbbf24';
+                    statusText = diffDays === 0 ? 'Due today!' : `${diffDays} days remaining`;
+                }
+                
+                return `
+                    <div class="request-item">
+                        <div class="request-info">
+                            <h4 style="color: #22c55e; margin-bottom: 5px;">${request.component} (${request.quantity})</h4>
+                            <p style="margin-bottom: 3px;"><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
+                            <p style="color: ${statusColor}; font-weight: bold;">${statusText}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function markAsReturned(requestId) {
+            const request = requests.find(r => r.id === requestId);
+            if (request) {
+                request.status = 'returned';
+                request.returnedAt = new Date().toISOString();
+                
+                // Update component availability
+                const component = components.find(c => c.name === request.component);
+                if (component) {
+                    component.available += request.quantity;
+                    localStorage.setItem('labComponents', JSON.stringify(components));
+                }
+                
+                localStorage.setItem('labRequests', JSON.stringify(requests));
+                loadStudentData();
+                showNotification('Item marked as returned! Thank you!');
+            }
+        }
+
+        // Admin Data Functions
+        function loadAdminData() {
+            updateAdminStats();
+            loadPendingRequests();
+            loadInventory();
+            loadAllBorrows();
+            loadStudentsList();
+        }
+
+        function updateAdminStats() {
+            const totalComponents = components.reduce((sum, comp) => sum + comp.total, 0);
+            const pendingCount = requests.filter(r => r.status === 'pending').length;
+            const activeCount = requests.filter(r => r.status === 'approved').length;
+            const overdueCount = requests.filter(r => {
+                if (r.status !== 'approved') return false;
+                return new Date(r.dueDate) < new Date();
+            }).length;
+
+            document.getElementById('total-components').textContent = totalComponents;
+            document.getElementById('pending-requests').textContent = pendingCount;
+            document.getElementById('active-borrows').textContent = activeCount;
+            document.getElementById('overdue-items').textContent = overdueCount;
+        }
+
+        function loadPendingRequests() {
+            const pendingRequests = requests.filter(r => r.status === 'pending');
+            const container = document.getElementById('admin-pending-requests');
+            
+            if (pendingRequests.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">No pending requests.</div>';
+                return;
+            }
+
+            container.innerHTML = pendingRequests.map(request => `
+                <div class="request-item">
+                    <div class="request-info">
+                        <h4 style="color: #22c55e; margin-bottom: 5px;">${request.component} (${request.quantity})</h4>
+                        <p style="margin-bottom: 3px;"><strong>Student:</strong> ${request.studentName} (${request.rollNumber})</p>
+                        <p style="margin-bottom: 3px;"><strong>Email:</strong> ${request.studentEmail}</p>
+                        <p style="margin-bottom: 3px;"><strong>Mobile:</strong> ${request.mobile}</p>
+                        <p style="margin-bottom: 3px;"><strong>Due Date:</strong> ${new Date(request.dueDate).toLocaleDateString()}</p>
+                        <p style="margin-bottom: 3px;"><strong>Purpose:</strong> ${request.purpose || 'Not specified'}</p>
+                        <p style="font-size: 0.9rem; color: #94a3b8;">Requested: ${new Date(request.requestedAt).toLocaleString()}</p>
+                    </div>
+                    <div class="request-actions">
+                        <button onclick="approveRequest('${request.id}')" class="btn-small btn-approve">Approve</button>
+                        <button onclick="rejectRequest('${request.id}')" class="btn-small btn-reject">Reject</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function approveRequest(requestId) {
+            const request = requests.find(r => r.id === requestId);
+            if (request) {
+                // Check component availability
+                const component = components.find(c => c.name === request.component);
+                if (!component || component.available < request.quantity) {
+                    showNotification('Insufficient component availability!', 'error');
+                    return;
+                }
+
+                // Update request status
+                request.status = 'approved';
+                request.approvedAt = new Date().toISOString();
+                
+                // Update component availability
+                component.available -= request.quantity;
+                
+                localStorage.setItem('labRequests', JSON.stringify(requests));
+                localStorage.setItem('labComponents', JSON.stringify(components));
+                
+                loadAdminData();
+                showNotification(`Request approved! Student will be notified: "Your request for ${request.component} x${request.quantity} has been approved. Come and get in Robotics lab"`);
+            }
+        }
+
+        function rejectRequest(requestId) {
+            const request = requests.find(r => r.id === requestId);
+            if (request) {
+                request.status = 'rejected';
+                request.rejectedAt = new Date().toISOString();
+                
+                localStorage.setItem('labRequests', JSON.stringify(requests));
+                loadAdminData();
+                showNotification('Request rejected!');
+            }
+        }
+
+        function loadInventory() {
+            const container = document.getElementById('inventory-list');
+            
+            container.innerHTML = components.map(component => `
+                <div class="request-item">
+                    <div class="request-info">
+                        <h4 style="color: #22c55e; margin-bottom: 5px;">${component.name}</h4>
+                        <p style="margin-bottom: 3px;"><strong>Available:</strong> ${component.available}</p>
+                        <p style="margin-bottom: 3px;"><strong>Total:</strong> ${component.total}</p>
+                        <p style="margin-bottom: 3px;"><strong>Borrowed:</strong> ${component.total - component.available}</p>
+                    </div>
+                    <div class="request-actions">
+                        <button onclick="updateInventory('${component.name}')" class="btn-small btn-secondary">Update</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateInventory(componentName) {
+            const component = components.find(c => c.name === componentName);
+            if (component) {
+                const newTotal = prompt(`Enter new total quantity for ${componentName}:`, component.total);
+                if (newTotal && !isNaN(newTotal)) {
+                    const total = parseInt(newTotal);
+                    const borrowed = component.total - component.available;
+                    component.total = total;
+                    component.available = Math.max(0, total - borrowed);
+                    
+                    localStorage.setItem('labComponents', JSON.stringify(components));
+                    loadInventory();
+                    updateAdminStats();
+                    showNotification('Inventory updated successfully!');
+                }
+            }
+        }
+
+        function loadAllBorrows() {
+            const allRequests = requests.filter(r => r.status !== 'pending');
+            const container = document.getElementById('admin-all-borrows');
+            
+            if (allRequests.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">No borrow history.</div>';
+                return;
+            }
+
+            const sortedRequests = allRequests.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+            
+            container.innerHTML = sortedRequests.map(request => `
+                <div class="request-item">
+                    <div class="request-info">
+                        <h4 style="color: #22c55e; margin-bottom: 5px;">${request.component} (${request.quantity})</h4>
+                        <p style="margin-bottom: 3px;"><strong>Student:</strong> ${request.studentName} (${request.rollNumber})</p>
+                        <p style="margin-bottom: 3px;"><strong>Status:</strong> <span class="status-${request.status}">${request.status.toUpperCase()}</span></p>
+                        <p style="margin-bottom: 3px;"><strong>Due Date:</strong> ${new Date(request.dueDate).toLocaleDateString()}</p>
+                        <p style="font-size: 0.9rem; color: #94a3b8;">Requested: ${new Date(request.requestedAt).toLocaleString()}</p>
+                        ${request.approvedAt ? `<p style="font-size: 0.9rem; color: #94a3b8;">Approved: ${new Date(request.approvedAt).toLocaleString()}</p>` : ''}
+                        ${request.returnedAt ? `<p style="font-size: 0.9rem; color: #94a3b8;">Returned: ${new Date(request.returnedAt).toLocaleString()}</p>` : ''}
+                    </div>
+                    ${request.status === 'approved' ? `
+                        <div class="request-actions">
+                            <button onclick="adminMarkReturned('${request.id}')" class="btn-small btn-secondary">Mark Returned</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function adminMarkReturned(requestId) {
+            const request = requests.find(r => r.id === requestId);
+            if (request) {
+                request.status = 'returned';
+                request.returnedAt = new Date().toISOString();
+                
+                // Update component availability
+                const component = components.find(c => c.name === request.component);
+                if (component) {
+                    component.available += request.quantity;
+                    localStorage.setItem('labComponents', JSON.stringify(components));
+                }
+                
+                localStorage.setItem('labRequests', JSON.stringify(requests));
+                loadAdminData();
+                showNotification('Item marked as returned!');
+            }
+        }
+
+        function loadStudentsList() {
+            const students = users.filter(u => u.role === 'student');
+            const container = document.getElementById('students-list');
+            
+            if (students.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">No students registered yet.</div>';
+                return;
+            }
+
+            container.innerHTML = students.map(student => {
+                const studentRequests = requests.filter(r => r.studentEmail === student.email);
+                const activeRequests = studentRequests.filter(r => r.status === 'approved').length;
+                const totalRequests = studentRequests.length;
+                
+                return `
+                    <div class="request-item">
+                        <div class="request-info">
+                            <h4 style="color: #22c55e; margin-bottom: 5px;">${student.name}</h4>
+                            <p style="margin-bottom: 3px;"><strong>Email:</strong> ${student.email}</p>
+                            <p style="margin-bottom: 3px;"><strong>Roll Number:</strong> ${student.rollNumber}</p>
+                            <p style="margin-bottom: 3px;"><strong>Mobile:</strong> ${student.mobile}</p>
+                            <p style="margin-bottom: 3px;"><strong>Active Borrows:</strong> ${activeRequests}</p>
+                            <p style="margin-bottom: 3px;"><strong>Total Requests:</strong> ${totalRequests}</p>
+                            <p style="font-size: 0.9rem; color: #94a3b8;">Registered: ${new Date(student.registeredAt).toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Export Functions
+        function exportData(type) {
+            let data = [];
+            let filename = '';
+            
+            if (type === 'requests') {
+                data = requests;
+                filename = 'lab_requests.json';
+            } else if (type === 'students') {
+                data = users.filter(u => u.role === 'student');
+                filename = 'lab_students.json';
+            }
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            showNotification('Data exported successfully!');
+        }
+
+        // Notification System
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            
+            if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            }
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Set minimum date for due date input
+        document.getElementById('reqDueDate').min = new Date().toISOString().split('T')[0];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus on first input
+            document.getElementById('loginName').focus();
+            
+            // Check if user is already logged in (for demo purposes)
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard(currentUser.role);
+            }
+        });
+
+        // Save current user to localStorage
+        function saveCurrentUser() {
+            if (currentUser) {
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            } else {
+                localStorage.removeItem('currentUser');
+            }
+        }
+
+        // Update logout function to clear saved user
+        const originalLogout = logout;
+        logout = function() {
+            localStorage.removeItem('currentUser');
+            originalLogout();
+        };
+
+        // Update login functions to save user
+        const originalShowDashboard = showDashboard;
+        showDashboard = function(role) {
+            saveCurrentUser();
+            originalShowDashboard(role);
+        };
+    </script>
+</body>
+
+</html>
