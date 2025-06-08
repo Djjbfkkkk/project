@@ -4,6 +4,8 @@ import { auth } from '../utils/auth';
 import { storage } from '../utils/storage';
 import { showNotification } from '../utils/notifications';
 import { BorrowRequest, Component } from '../types';
+import { NotificationCenter } from './NotificationCenter';
+import { StatusBadge } from './StatusBadge';
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -14,6 +16,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
   const [components, setComponents] = useState<Component[]>([]);
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   
   // Form state
   const [selectedComponent, setSelectedComponent] = useState('');
@@ -101,28 +104,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
     onLogout();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-600';
-      case 'approved': return 'bg-green-600';
-      case 'returned': return 'bg-blue-600';
-      case 'rejected': return 'bg-red-600';
-      case 'overdue': return 'bg-red-700';
-      default: return 'bg-gray-600';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <Clock className="w-4 h-4" />;
-      case 'approved': return <CheckCircle className="w-4 h-4" />;
-      case 'returned': return <Package className="w-4 h-4" />;
-      case 'rejected': return <AlertCircle className="w-4 h-4" />;
-      case 'overdue': return <AlertCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
-  };
-
   const currentlyBorrowed = requests.filter(r => r.status === 'approved').length;
   const totalBorrowed = requests.length;
   const pendingRequests = requests.filter(r => r.status === 'pending').length;
@@ -146,6 +127,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
               </div>
             </div>
             <div className="flex items-center space-x-6">
+              <NotificationCenter onNotificationUpdate={setNotificationCount} />
               <div className="text-right">
                 <p className="text-lg font-semibold text-white">{currentUser?.name}</p>
                 <p className="text-sm text-gray-400">{currentUser?.email}</p>
@@ -349,10 +331,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
                       <div className="flex-1">
                         <div className="flex items-center space-x-4 mb-4">
                           <h3 className="text-xl font-bold text-white">{request.componentName}</h3>
-                          <span className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-semibold text-white ${getStatusColor(request.status)}`}>
-                            {getStatusIcon(request.status)}
-                            <span className="capitalize">{request.status}</span>
-                          </span>
+                          <StatusBadge 
+                            status={request.status} 
+                            animated={request.status === 'pending'} 
+                          />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                           <div>
@@ -406,10 +388,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onLogout }) 
                       <div className="flex-1">
                         <div className="flex items-center space-x-4 mb-4">
                           <h3 className="text-xl font-bold text-white">{request.componentName}</h3>
-                          <span className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-semibold text-white ${getStatusColor(request.status)}`}>
-                            {getStatusIcon(request.status)}
-                            <span className="capitalize">{request.status}</span>
-                          </span>
+                          <StatusBadge status={request.status} />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                           <div>

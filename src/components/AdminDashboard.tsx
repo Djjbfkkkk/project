@@ -8,6 +8,9 @@ import { auth } from '../utils/auth';
 import { storage } from '../utils/storage';
 import { showNotification } from '../utils/notifications';
 import { BorrowRequest, Component, User as UserType } from '../types';
+import { NotificationCenter } from './NotificationCenter';
+import { ActivityFeed } from './ActivityFeed';
+import { StatusBadge } from './StatusBadge';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -20,6 +23,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [notificationCount, setNotificationCount] = useState(0);
   
 
   // Component form state
@@ -192,17 +196,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     onLogout();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-600';
-      case 'approved': return 'bg-green-600';
-      case 'returned': return 'bg-blue-600';
-      case 'rejected': return 'bg-red-600';
-      case 'overdue': return 'bg-red-700';
-      default: return 'bg-gray-600';
-    }
-  };
-
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.componentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -235,6 +228,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               </div>
             </div>
             <div className="flex items-center space-x-6">
+              <NotificationCenter onNotificationUpdate={setNotificationCount} />
               <div className="text-right">
                 <p className="text-lg font-semibold text-white">{currentUser?.name}</p>
                 <p className="text-sm text-gray-400">{currentUser?.email}</p>
@@ -288,14 +282,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 shadow-xl">
+        <div className="space-y-8">
           {activeTab === 'overview' && (
             <div>
-              <h2 className="text-3xl font-bold text-white mb-8">Lab Overview</h2>
-              
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-blue-600/20 border border-blue-500/30 rounded-2xl p-6 shadow-lg">
+                <div className="bg-blue-600/20 border border-blue-500/30 rounded-2xl p-6 shadow-lg backdrop-blur-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center">
                       <Package className="w-7 h-7 text-white" />
@@ -307,7 +299,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   </div>
                 </div>
 
-                <div className="bg-green-600/20 border border-green-500/30 rounded-2xl p-6 shadow-lg">
+                <div className="bg-green-600/20 border border-green-500/30 rounded-2xl p-6 shadow-lg backdrop-blur-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-14 h-14 bg-green-600 rounded-xl flex items-center justify-center">
                       <CheckCircle className="w-7 h-7 text-white" />
@@ -319,7 +311,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   </div>
                 </div>
 
-                <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-2xl p-6 shadow-lg">
+                <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-2xl p-6 shadow-lg backdrop-blur-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-14 h-14 bg-yellow-600 rounded-xl flex items-center justify-center">
                       <Clock className="w-7 h-7 text-white" />
@@ -331,7 +323,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   </div>
                 </div>
 
-                <div className="bg-purple-600/20 border border-purple-500/30 rounded-2xl p-6 shadow-lg">
+                <div className="bg-purple-600/20 border border-purple-500/30 rounded-2xl p-6 shadow-lg backdrop-blur-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-14 h-14 bg-purple-600 rounded-xl flex items-center justify-center">
                       <Users className="w-7 h-7 text-white" />
@@ -344,55 +336,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 </div>
               </div>
 
-              {/* Recent Activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-6">Recent Requests</h3>
-                  <div className="space-y-4">
-                    {requests.slice(0, 5).map(request => (
-                      <div key={request.id} className="bg-gray-700/50 rounded-xl p-4 border border-gray-600/50">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-white font-semibold">{request.studentName}</p>
-                            <p className="text-gray-400 text-sm">{request.componentName} x{request.quantity}</p>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(request.status)}`}>
-                            {request.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-6">Low Stock Components</h3>
-                  <div className="space-y-4">
-                    {components
-                      .filter(c => c.available < c.total * 0.2)
-                      .slice(0, 5)
-                      .map(component => (
-                        <div key={component.id} className="bg-gray-700/50 rounded-xl p-4 border border-gray-600/50">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-white font-semibold">{component.name}</p>
-                              <p className="text-gray-400 text-sm">{component.category}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-red-400 font-bold">{component.available}/{component.total}</p>
-                              <p className="text-gray-400 text-xs">Available</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
+              {/* Activity Feed */}
+              <ActivityFeed maxItems={8} showFilters={true} />
             </div>
           )}
 
           {activeTab === 'pending' && (
-            <div>
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 shadow-xl">
               <h2 className="text-3xl font-bold text-white mb-8">Pending Requests</h2>
               <div className="space-y-6">
                 {requests.filter(r => r.status === 'pending').map(request => (
@@ -402,6 +352,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <div className="flex items-center space-x-4 mb-4">
                           <Package className="w-8 h-8 text-teal-400" />
                           <h3 className="text-xl font-bold text-white">{request.componentName}</h3>
+                          <StatusBadge status="pending" animated={true} />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm mb-6">
                           <div>
@@ -461,7 +412,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           )}
 
           {activeTab === 'checkout' && (
-            <div>
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 shadow-xl">
               <h2 className="text-3xl font-bold text-white mb-8">Checkout & Return Management</h2>
               <div className="space-y-6">
                 {requests.filter(r => r.status === 'approved').map(request => (
@@ -471,9 +422,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <div className="flex items-center space-x-4 mb-4">
                           <Package className="w-8 h-8 text-green-400" />
                           <h3 className="text-xl font-bold text-white">{request.componentName}</h3>
-                          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            Checked Out
-                          </span>
+                          <StatusBadge status="approved" />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                           <div>
@@ -515,7 +464,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           )}
 
           {activeTab === 'inventory' && (
-            <div>
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 shadow-xl">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-bold text-white">Inventory Management</h2>
                 <button
@@ -662,7 +611,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           )}
 
           {activeTab === 'requests' && (
-            <div>
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 shadow-xl">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-bold text-white">All Component Requests</h2>
                 <div className="flex space-x-4">
@@ -698,17 +647,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                         <div className="flex items-center space-x-4 mb-4">
                           <Package className="w-8 h-8 text-teal-400" />
                           <h3 className="text-xl font-bold text-white">{request.componentName}</h3>
-                          <span className={`px-4 py-2 rounded-full text-sm font-semibold text-white ${getStatusColor(request.status)}`}>
-                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                          </span>
+                          <StatusBadge status={request.status} />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm mb-4">
                           <div>
-                            <p className="text-gray-400 font-medium">Roll No</p>
+                            <p className="text-gray-400 font-medium">Student</p>
                             <p className="text-white font-bold">{request.studentName}</p>
                           </div>
                           <div>
-                            <p className="text-gray-400 font-medium">Student</p>
+                            <p className="text-gray-400 font-medium">Roll No</p>
                             <p className="text-white font-bold">{request.rollNo}</p>
                           </div>
                           <div>
@@ -765,7 +712,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           )}
 
           {activeTab === 'users' && (
-            <div>
+            <div className="bg-gray-800/60 backdrop-blur-lg rounded-2xl p-8 border border-gray-700/50 shadow-xl">
               <h2 className="text-3xl font-bold text-white mb-8">User Profiles & History</h2>
               <div className="space-y-6">
                 {users.map(user => {
@@ -785,7 +732,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                           <div className="flex items-center justify-between mb-4">
                             <div>
                               <h3 className="text-2xl font-bold text-white">{user.name}</h3>
-                              <p className="text-gray-400">{user.rollNo || 'Name not provided'}</p>
+                              <p className="text-gray-400">{user.rollNo || 'Roll No not provided'}</p>
                               <p className="text-teal-300 font-medium">{user.email}</p>
                             </div>
                             <div className="text-right">
@@ -845,9 +792,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                     <p className="text-white font-medium">{request.componentName}</p>
                                     <p className="text-gray-400 text-sm">{new Date(request.requestDate).toLocaleDateString()}</p>
                                   </div>
-                                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getStatusColor(request.status)}`}>
-                                    {request.status}
-                                  </span>
+                                  <StatusBadge status={request.status} size="sm" />
                                 </div>
                               ))}
                             </div>
